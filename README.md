@@ -1,0 +1,1 @@
+# Voting.sol unit tests
