@@ -63,3 +63,4 @@ Here is a complete hierarchy of the test suite execution path:
         ✔ workflowStatus should be VotingSessionEnded
         ✔ winningProposalID should be 0
 ##### Tallying votes
+        ✔ Should set winningProposalId to the winning proposal

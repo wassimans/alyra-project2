@@ -386,7 +386,6 @@ contract("Voting", function (accounts) {
                             winningProposalId = p;
                         }
                      }
-                     console.log(winningProposalId);
                      await voting.tallyVotes({from: OWNER});
                      expect(new BN(winningProposalId)).to.be.bignumber.equal(await voting.winningProposalID());
                 });
