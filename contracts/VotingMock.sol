@@ -32,10 +32,12 @@ contract VotingMock is Voting {
     }
 
     function setSampleProposalsForTallyingVotes() external onlyOwner {
-        proposalsArray[1].voteCount = 1;
-        proposalsArray[2].voteCount = 2;
-        proposalsArray[3].voteCount = 7;
-        proposalsArray[4].voteCount = 3;
-        proposalsArray[5].voteCount = 0;
+        delete proposalsArray;
+        proposalsArray.push(Proposal("GENESIS", 0));
+        proposalsArray.push(Proposal("This a first description", 1));
+        proposalsArray.push(Proposal("This a second description", 4));
+        proposalsArray.push(Proposal("This a third description", 3));
+        proposalsArray.push(Proposal("This a fourth description", 7));
+        proposalsArray.push(Proposal("This a fifth description", 0));
     }
 }

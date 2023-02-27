@@ -32,47 +32,127 @@ let voting;
 contract("Voting", function (accounts) {
     const OWNER = accounts[0];
 
-    describe('Check workflow initial state', function () {
-        beforeEach(async function () {
-            voting = await VotingMock.new();
+    describe('SETUP', function () {
+
+        describe('Check workflow initial state', function () {
+            beforeEach(async function () {
+                voting = await VotingMock.new();
+            });
+        
+            it('workflowStatus should be RegisteringVoters', async function () {
+                expect(await voting.workflowStatus()).to.be.bignumber.equal(REGISTERING_VOTERS);
+            });
         });
     
-        it('workflowStatus should be RegisteringVoters', async function () {
-            expect(await voting.workflowStatus()).to.be.bignumber.equal(REGISTERING_VOTERS);
-        });
-    });
-
-    describe('Check getters and modifiers', function () {
-        beforeEach(async function () {
-            voting = await VotingMock.new();
-        });
-
-        it('Should get a voter', async function () {
-            const voter1 = VOTERS[0];
-            const voter2 = VOTERS[1];
-            // Register voter1
-            await voting.addVoter(voter1, {from: OWNER});
-            // Get voter2 data
-            const voter2_data = await voting.getVoter(voter2, {from: voter1});
-            // Verify data
-            await expect(voter2_data['isRegistered']).to.equal(false);
-            await expect(voter2_data['hasVoted']).to.equal(false);
-            await expect(voter2_data['votedProposalId']).to.be.bignumber.equal(new BN(0));
-        });
+        describe('Check getters and modifiers', function () {
+            beforeEach(async function () {
+                voting = await VotingMock.new();
+            });
     
-        it('Check onlyVoters modifier', async function () {
-            const voter1 = VOTERS[0];
-            const voter2 = VOTERS[1];
-            const error_msg = "You're not a voter";
-            await expectRevert(voting.getVoter(voter2, {from: voter1}), error_msg);
-            // Register voter1
-            await voting.addVoter(voter1, {from: OWNER});
-            // Get voter2 data
-            const voter2_data = await voting.getVoter(voter2, {from: voter1});
-            // Verify data
-            await expect(voter2_data['isRegistered']).to.equal(false);
-            await expect(voter2_data['hasVoted']).to.equal(false);
-            await expect(voter2_data['votedProposalId']).to.be.bignumber.equal(new BN(0));
+            it('Should get a voter', async function () {
+                const voter1 = VOTERS[0];
+                const voter2 = VOTERS[1];
+                // Register voter1
+                await voting.addVoter(voter1, {from: OWNER});
+                // Get voter2 data
+                const voter2_data = await voting.getVoter(voter2, {from: voter1});
+                // Verify data
+                await expect(voter2_data['isRegistered']).to.equal(false);
+                await expect(voter2_data['hasVoted']).to.equal(false);
+                await expect(voter2_data['votedProposalId']).to.be.bignumber.equal(new BN(0));
+            });
+        
+            it('Check onlyVoters modifier', async function () {
+                const voter1 = VOTERS[0];
+                const voter2 = VOTERS[1];
+                const error_msg = "You're not a voter";
+                await expectRevert(voting.getVoter(voter2, {from: voter1}), error_msg);
+                // Register voter1
+                await voting.addVoter(voter1, {from: OWNER});
+                // Get voter2 data
+                const voter2_data = await voting.getVoter(voter2, {from: voter1});
+                // Verify data
+                await expect(voter2_data['isRegistered']).to.equal(false);
+                await expect(voter2_data['hasVoted']).to.equal(false);
+                await expect(voter2_data['votedProposalId']).to.be.bignumber.equal(new BN(0));
+            });
+        });
+
+        describe('Check workflow state changes', function () {
+            beforeEach(async function () {
+                voting = await VotingMock.new();
+            });
+
+            describe('Start Proposals Registering', function () {
+                it('Check startProposalsRegistering', async function () {
+                    // Change 'workflowStatus' to any status other than REGISTERING_VOTERS
+                    await voting.setWorkflowStatus(VOTING_SESSION_ENDED, {from: OWNER});
+                    const error_msg = "Registering proposals cant be started now";
+                    await expectRevert(voting.startProposalsRegistering({from: OWNER}), error_msg);
+                });
+    
+                it('Should emit "WorkflowStatusChange" event', async function () {
+                    expectEvent(
+                        await voting.startProposalsRegistering({from: OWNER}),
+                        'WorkflowStatusChange',
+                        { previousStatus: REGISTERING_VOTERS, newStatus: PROPOSALS_REGISTRATION_STARTED},
+                    );
+                });
+            });
+
+            describe('End Proposals Registering', function () {
+                it('Check endProposalsRegistering', async function () {
+                    // Change 'workflowStatus' to any status other than PROPOSALS_REGISTRATION_STARTED
+                    await voting.setWorkflowStatus(REGISTERING_VOTERS, {from: OWNER});
+                    const error_msg = "Registering proposals havent started yet";
+                    await expectRevert(voting.endProposalsRegistering({from: OWNER}), error_msg);
+                });
+    
+                it('Should emit "WorkflowStatusChange" event', async function () {
+                    await voting.setWorkflowStatus(PROPOSALS_REGISTRATION_STARTED, {from: OWNER});
+                    expectEvent(
+                        await voting.endProposalsRegistering({from: OWNER}),
+                        'WorkflowStatusChange',
+                        { previousStatus: PROPOSALS_REGISTRATION_STARTED, newStatus: PROPOSALS_REGISTRATION_ENDED},
+                    );
+                });
+            });
+
+            describe('Start Voting Session', function () {
+                it('Check startVotingSession', async function () {
+                    // Change 'workflowStatus' to any status other than PROPOSALS_REGISTRATION_ENDED
+                    await voting.setWorkflowStatus(REGISTERING_VOTERS, {from: OWNER});
+                    const error_msg = "Registering proposals phase is not finished";
+                    await expectRevert(voting.startVotingSession({from: OWNER}), error_msg);
+                });
+    
+                it('Should emit "WorkflowStatusChange" event', async function () {
+                    await voting.setWorkflowStatus(PROPOSALS_REGISTRATION_ENDED, {from: OWNER});
+                    expectEvent(
+                        await voting.startVotingSession({from: OWNER}),
+                        'WorkflowStatusChange',
+                        { previousStatus: PROPOSALS_REGISTRATION_ENDED, newStatus: VOTING_SESSION_STARTED},
+                    );
+                });
+            });
+
+            describe('End Voting Session', function () {
+                it('Check endVotingSession', async function () {
+                    // Change 'workflowStatus' to any status other than VOTING_SESSION_STARTED
+                    await voting.setWorkflowStatus(REGISTERING_VOTERS, {from: OWNER});
+                    const error_msg = "Voting session havent started yet";
+                    await expectRevert(voting.endVotingSession({from: OWNER}), error_msg);
+                });
+    
+                it('Should emit "WorkflowStatusChange" event', async function () {
+                    await voting.setWorkflowStatus(VOTING_SESSION_STARTED, {from: OWNER});
+                    expectEvent(
+                        await voting.endVotingSession({from: OWNER}),
+                        'WorkflowStatusChange',
+                        { previousStatus: VOTING_SESSION_STARTED, newStatus: VOTING_SESSION_ENDED},
+                    );
+                });
+            });
         });
     });
 
@@ -276,7 +356,7 @@ contract("Voting", function (accounts) {
         beforeEach(async function () {
             voting = await VotingMock.new();
             await voting.setWorkflowStatus(VOTING_SESSION_ENDED, {from: OWNER});
-            // await voting.setSampleProposalsForTallyingVotes({from: OWNER});
+            await voting.setSampleProposalsForTallyingVotes({from: OWNER});
         });
 
         it('Should revert when voting session is not ended', async function () {
@@ -298,16 +378,17 @@ contract("Voting", function (accounts) {
 
             describe('Tallying votes', function () {
 
-                it('Should revert when voter has already voted', async function () {
+                it('Should set winningProposalId to the winning proposal', async function () {
                     proposalArray = await voting.getProposalArray({from: OWNER});
                     let winningProposalId = 0;
                     for (let p = 0; p < proposalArray.length; p++) {
-                         if (proposalArray[p].voteCount > proposalArray[winningProposalId].voteCount) {
+                         if (parseInt(proposalArray[p].voteCount) > parseInt(proposalArray[winningProposalId].voteCount)) {
                             winningProposalId = p;
                         }
                      }
+                     console.log(winningProposalId);
                      await voting.tallyVotes({from: OWNER});
-                     expect(winningProposalId).to.be.bignumber.equal(voting.winningProposalID());
+                     expect(new BN(winningProposalId)).to.be.bignumber.equal(await voting.winningProposalID());
                 });
             });
         });
