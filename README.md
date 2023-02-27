@@ -1,5 +1,5 @@
 # Voting.sol unit tests
-The test suite is uses a mock contract (VotingMock.sol) to set testing state for the original contract (Voting.sol).
+The test suite uses a mock contract (VotingMock.sol) to set testing state for the original contract (Voting.sol).
 
 - it initializes a voters mapping with sample accounts from Ganache ten testing accounts.
 - it sets two sample proposals list: one before the voting session and one for tallying votes.
