@@ -2,14 +2,12 @@
 const {BN, expectRevert, expectEvent} = require('@openzeppelin/test-helpers');
 const {expect} = require('chai');
 const VotingMock = artifacts.require("VotingMock");
-const Chance = require('chance');
 
 const REGISTERING_VOTERS = new BN(0);
 const PROPOSALS_REGISTRATION_STARTED = new BN(1);
 const PROPOSALS_REGISTRATION_ENDED = new BN(2);
 const VOTING_SESSION_STARTED = new BN(3);
 const VOTING_SESSION_ENDED = new BN(4);
-const VOTES_TALLIED = new BN(5);
 
 // Initialize a sample list of five addresses
 // Add accounts 1 to 5 from Ganache test accounts
